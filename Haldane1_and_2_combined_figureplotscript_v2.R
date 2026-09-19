@@ -30,6 +30,7 @@
 # 8/16/2026       changed placement (h, w) of panel plot C's on-plot labels
 # 8/30/2026       extended decimal places of slope labeled on the plot
 # 9/19/2026       added five-point all-class repair convergence check
+# 9/19/2026       removed upper bound of epsilon in accored with manuscript
 #
 # ==============================================================================
 
@@ -95,11 +96,14 @@ nu_grid <- c(
 # ------------------------------------------------------------------------------
 # 2. Basic validation
 # ------------------------------------------------------------------------------
+# The primary biological regime discussed in the manuscript is
+# 0 < epsilon < 1, but the analytical results do not require
+# the upper bound epsilon < 1.
 
 stopifnot(
   pars$n >= 1L,
   pars$epsilon > 0,
-  pars$epsilon < 1,
+  #pars$epsilon < 1,
   pars$zeta_rho > 0,
   pars$zeta_rho < 1,
   pars$zeta_gamma > 1,
@@ -717,3 +721,4 @@ cat(paste(summary_lines, collapse = "\n"), "\n\n")
 cat("Figure files:\n")
 cat("  ", pdf_file, "\n", sep = "")
 cat("  ", png_file, "\n", sep = "")
+
