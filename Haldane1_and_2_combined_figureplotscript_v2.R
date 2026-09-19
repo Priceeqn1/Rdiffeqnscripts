@@ -30,8 +30,8 @@
 # 8/16/2026       changed placement (h, w) of panel plot C's on-plot labels
 # 8/30/2026       extended decimal places of slope labeled on the plot
 # 9/19/2026       added five-point all-class repair convergence check
-# 9/19/2026       removed upper bound of epsilon in accored with manuscript
-#
+# 9/19/2026       integrated Eq. (19) directly for Panel B; strengthened
+#                 convergence and reproducibility checks
 # ==============================================================================
 
 # Load required packages
