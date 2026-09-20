@@ -23,8 +23,11 @@
 #   threshold_dynamic_scaling.csv
 #   threshold_repair_scaling.csv
 #   numerical_validation_summary.txt
+#   binary_load_curves.pdf
+#   binary_load_curves.png
+#   binary_load_curves.csv
 #   session_info.txt
-#
+
 # August 16 2026
 # Last updated: 9/19/2026
 #
@@ -35,7 +38,7 @@
 # 9/19/2026       added five-point all-class repair convergence check
 # 9/19/2026       integrated Eq. (19) directly for Panel B; strengthened
 #                 convergence and reproducibility checks
-#
+# 9/19/2026       added exact binary equilibrium load curves across repair rates
 # ==============================================================================
 
 # Load required package
@@ -688,11 +691,61 @@ binary_equilibrium <- function(U, nu, pars) {
     pars$epsilon *
     U /
     (
-      B +
-        sqrt(Delta)
+      B + sqrt(Delta)
     )
 }
 
+# ------------------------------------------------------------------------------
+# 6a. Exact binary equilibrium load curves across mutation pressure
+# ------------------------------------------------------------------------------
+
+U_curve <- seq(0, 1, length.out = 2000)
+
+nu_curve <- c(
+  0,
+  0.01,
+  0.05,
+  lambda,
+  1.0
+)
+
+binary_load <- function(U_vec, nu) {
+  lambda * vapply(
+    U_vec,
+    function(u) {
+      binary_equilibrium(
+        U = u,
+        nu = nu,
+        pars = pars
+      )
+    },
+    numeric(1)
+  )
+}
+
+binary_load_matrix <- vapply(
+  nu_curve,
+  function(nu) binary_load(U_curve, nu),
+  numeric(length(U_curve))
+)
+
+colnames(binary_load_matrix) <- c(
+  "nu_0",
+  "nu_0.01",
+  "nu_0.05",
+  "nu_lambda",
+  "nu_1"
+)
+
+binary_load_data <- data.frame(
+  U = U_curve,
+  binary_load_matrix,
+  check.names = FALSE
+)
+
+# ------------------------------------------------------------------------------
+# 6b. Panel C repair scaling at U = U_c
+# ------------------------------------------------------------------------------
 
 x_star_threshold <- vapply(
   nu_grid,
@@ -781,6 +834,14 @@ utils::write.csv(
   row.names = FALSE
 )
 
+utils::write.csv(
+  binary_load_data,
+  file.path(
+    output_dir,
+    "binary_load_curves.csv"
+  ),
+  row.names = FALSE
+)
 
 summary_lines <- c(
   "Numerical validation summary",
@@ -1192,9 +1253,134 @@ png_file <- draw_validation_panel(
   "png"
 )
 
+# ------------------------------------------------------------------------------
+# 9. Figure 2: exact binary equilibrium load across mutation pressure
+# ------------------------------------------------------------------------------
+
+draw_binary_load_figure <- function(
+    device = c(
+      "pdf",
+      "png"
+    )
+) {
+  device <- match.arg(device)
+  
+  if (device == "pdf") {
+    figure_file <- file.path(
+      output_dir,
+      "binary_load_curves.pdf"
+    )
+    
+    grDevices::pdf(
+      figure_file,
+      width = 5.6,
+      height = 4.3,
+      useDingbats = FALSE
+    )
+    
+  } else {
+    figure_file <- file.path(
+      output_dir,
+      "binary_load_curves.png"
+    )
+    
+    grDevices::png(
+      figure_file,
+      width = 1400,
+      height = 1050,
+      res = 250
+    )
+  }
+  
+  op <- graphics::par(
+    mar = c(4.5, 4.8, 2.2, 1.0)
+  )
+  
+  on.exit({
+    graphics::par(op)
+    grDevices::dev.off()
+  }, add = TRUE)
+  
+  curve_cols <- seq_along(nu_curve)
+  curve_lty  <- seq_along(nu_curve)
+  curve_lwd  <- c(
+    2.4,
+    1.8,
+    1.8,
+    1.8,
+    1.8
+  )
+  
+  graphics::matplot(
+    U_curve,
+    binary_load_matrix,
+    type = "l",
+    col = curve_cols,
+    lty = curve_lty,
+    lwd = curve_lwd,
+    xlab = expression(U),
+    ylab = expression(L^"*"),
+    ylim = c(0, lambda)
+  )
+  
+  graphics::abline(
+    v = U_c,
+    lty = 3,
+    lwd = 1.3
+  )
+  
+  graphics::text(
+    x = U_c,
+    y = 0.97 * lambda,
+    labels = expression(U[c]),
+    pos = 4,
+    cex = 0.85
+  )
+  
+  graphics::legend(
+    "bottomright",
+    legend = c(
+      expression(nu == 0),
+      expression(nu == 0.01),
+      expression(nu == 0.05),
+      expression(nu == lambda),
+      expression(nu == 1)
+    ),
+    col = curve_cols,
+    lty = curve_lty,
+    lwd = curve_lwd,
+    bty = "n",
+    cex = 0.88
+  )
+  
+  graphics::mtext(
+    bquote(
+      epsilon == .(pars$epsilon) ~ "," ~
+        zeta[rho] == .(pars$zeta_rho) ~ "," ~
+        zeta[gamma] == .(pars$zeta_gamma) ~ "," ~
+        lambda == .(lambda)
+    ),
+    side = 3,
+    line = 0.25,
+    cex = 0.82
+  )
+  
+  invisible(
+    figure_file
+  )
+}
+
+
+binary_pdf_file <- draw_binary_load_figure(
+  "pdf"
+)
+
+binary_png_file <- draw_binary_load_figure(
+  "png"
+)
 
 # ------------------------------------------------------------------------------
-# 9. Console summary
+# 10. Console summary
 # ------------------------------------------------------------------------------
 
 cat(
@@ -1214,9 +1400,8 @@ cat(
   ),
   "\n\n"
 )
-
 cat(
-  "Figure files:\n"
+  "Figure 1 files:\n"
 )
 
 cat(
@@ -1232,3 +1417,22 @@ cat(
   "\n",
   sep = ""
 )
+
+cat(
+  "\nFigure 2 files:\n"
+)
+
+cat(
+  "  ",
+  binary_pdf_file,
+  "\n",
+  sep = ""
+)
+
+cat(
+  "  ",
+  binary_png_file,
+  "\n",
+  sep = ""
+)
+
