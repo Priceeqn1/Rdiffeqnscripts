@@ -1,3 +1,9 @@
+# DEPRECATED
+# This script is retained for provenance only.
+# Please use:
+#   RepairMediatedPathFiltering_AllFigures_v4.R
+# for the current analyses and all manuscript figures.
+
 # ============================================================================
 # RepairMediatedPathFiltering_MainFigure_v3.R
 #
